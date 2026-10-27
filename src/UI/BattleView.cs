@@ -35,6 +35,8 @@ public partial class BattleView : Node2D
     private string _banner = "";
     private float _bannerTimer;
 
+    private float _time;
+
     private bool _shotMode;
     private bool _autoMode;
     private float _shotClock;
@@ -65,6 +67,7 @@ public partial class BattleView : Node2D
     {
         float dt = (float)delta;
 
+        _time += dt;
         _sim?.Tick(dt);
         _toastTimer = Mathf.Max(0f, _toastTimer - dt);
         _bannerTimer = Mathf.Max(0f, _bannerTimer - dt);
@@ -239,13 +242,22 @@ public partial class BattleView : Node2D
     {
         if (_sim == null) return;
 
+        // Background stays still; the battlefield shakes under it.
         DrawBackground();
+
+        var shake = Vector2.Zero;
+        if (_sim.ScreenShake > 0.001f)
+            shake = new Vector2(GD.Randf() - 0.5f, GD.Randf() - 0.5f) * _sim.ScreenShake * 14f;
+
+        DrawSetTransform(shake, 0f, Vector2.One);
         DrawMap();
         DrawDeployPreview();
         DrawEnemies();
         DrawOperators();
         DrawProjectiles();
         DrawEffects();
+
+        DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
         DrawTopBar();
         DrawCards();
         DrawSelection();
@@ -257,47 +269,149 @@ public partial class BattleView : Node2D
     private void DrawBackground()
     {
         DrawRect(new Rect2(0, 0, 1280, 720), Palette.Bg);
+
+        // Sparse dot grid, keeps the empty area from reading as a flat void.
+        for (int x = 0; x < 1280; x += 32)
+            for (int y = 0; y < 720; y += 32)
+                DrawRect(new Rect2(x, y, 1, 1), new Color(0.10f, 0.13f, 0.17f, 0.8f));
     }
 
     private void DrawMap()
     {
+        var mapArea = new Rect2(MapOrigin, new Vector2(Cols * Cell, Rows * Cell));
+        DrawRect(mapArea, Palette.Bg);
+
         for (int r = 0; r < Rows; r++)
         {
             for (int c = 0; c < Cols; c++)
             {
-                var type = _sim.Map.At(c, r);
-                var rect = CellRect(new Vector2I(c, r));
-                var fill = type switch
+                var cell = new Vector2I(c, r);
+                var type = _sim.Map.At(cell);
+                var rect = CellRect(cell);
+
+                switch (type)
                 {
-                    CellType.Ground => Palette.Ground,
-                    CellType.Highland => Palette.Highland,
-                    CellType.Wall => Palette.Wall,
-                    CellType.Spawn => new Color(0.28f, 0.09f, 0.12f),
-                    CellType.Goal => new Color(0.06f, 0.16f, 0.24f),
-                    _ => Palette.EmptyCell,
-                };
-                DrawRect(rect, fill);
-                DrawRect(rect, Palette.GridLine, false, 1f);
+                    case CellType.Ground:
+                    case CellType.Spawn:
+                    case CellType.Goal:
+                        DrawRect(rect, Palette.Ground);
+                        DrawRect(rect.Grow(-1f), Palette.GridLine, false, 1f);
+                        DrawCornerTicks(rect, new Color(Palette.AccentDim, 0.7f));
+                        break;
+
+                    case CellType.Highland:
+                        DrawRect(rect, Palette.Highland);
+                        DrawPlateauDots(rect);
+                        DrawRect(rect, new Color(Palette.AccentDim, 0.9f), false, 1f);
+                        break;
+
+                    case CellType.Wall:
+                        DrawRect(rect, Palette.Wall);
+                        DrawWallCross(rect);
+                        break;
+
+                    default:
+                        DrawRect(rect, Palette.EmptyCell);
+                        DrawRect(rect.Grow(-1f), new Color(Palette.GridLine, 0.18f), false, 1f);
+                        break;
+                }
             }
         }
 
-        DrawRect(new Rect2(MapOrigin - new Vector2(2, 2), new Vector2(Cols * Cell + 4, Rows * Cell + 4)),
-            Palette.AccentDim, false, 1f);
+        foreach (var path in _sim.Map.Paths) DrawLane(path);
+        foreach (var spawn in _sim.Map.Spawns) DrawSpawnMarker(spawn);
+        foreach (var goal in _sim.Map.Goals) DrawGoalMarker(goal);
 
-        foreach (var path in _sim.Map.Paths)
+        DrawRect(mapArea.Grow(2f), Palette.AccentDim, false, 1f);
+        DrawRect(mapArea.Grow(7f), new Color(Palette.Accent, 0.05f), false, 3f);
+    }
+
+    private void DrawCornerTicks(Rect2 rect, Color color)
+    {
+        const float len = 6f;
+        var p = rect.Position;
+        var s = rect.Size;
+
+        DrawLine(p + new Vector2(3, 3), p + new Vector2(3 + len, 3), color, 1f);
+        DrawLine(p + new Vector2(3, 3), p + new Vector2(3, 3 + len), color, 1f);
+        DrawLine(p + new Vector2(s.X - 3, 3), p + new Vector2(s.X - 3 - len, 3), color, 1f);
+        DrawLine(p + new Vector2(s.X - 3, 3), p + new Vector2(s.X - 3, 3 + len), color, 1f);
+    }
+
+    private void DrawPlateauDots(Rect2 rect)
+    {
+        for (int y = 0; y < 4; y++)
         {
-            foreach (var cell in path)
+            for (int x = 0; x < 4; x++)
             {
-                if (!_sim.Map.InBounds(cell)) continue;
-                DrawRect(CellRect(cell).Grow(-8f), new Color(0f, 0.9f, 1f, 0.028f));
+                if ((x + y) % 2 != 0) continue;
+                var dot = rect.Position + new Vector2(10 + x * 12, 10 + y * 12);
+                DrawRect(new Rect2(dot, new Vector2(3, 3)), Palette.HighlandDot);
             }
         }
+    }
 
-        foreach (var spawn in _sim.Map.Spawns)
-            DrawString(_font, CellRect(spawn).Position + new Vector2(6, 20), "S", HorizontalAlignment.Left, -1, 14, Palette.Danger);
+    private void DrawWallCross(Rect2 rect)
+    {
+        var p = rect.Position;
+        var s = rect.Size;
+        DrawLine(p + new Vector2(8, 8), p + new Vector2(s.X - 8, s.Y - 8), Palette.WallCross, 1f);
+        DrawLine(p + new Vector2(s.X - 8, 8), p + new Vector2(8, s.Y - 8), Palette.WallCross, 1f);
+    }
 
-        foreach (var goal in _sim.Map.Goals)
-            DrawString(_font, CellRect(goal).Position + new Vector2(6, 20), "T", HorizontalAlignment.Left, -1, 14, Palette.Accent);
+    private void DrawLane(List<Vector2I> path)
+    {
+        foreach (var cell in path)
+        {
+            if (!_sim.Map.InBounds(cell)) continue;
+            var r = CellRect(cell).Grow(-3f);
+            DrawRect(r, Palette.LaneFill);
+            DrawRect(r, new Color(Palette.Accent, 0.18f), false, 1f);
+        }
+
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            if (i % 2 != 0) continue;
+
+            var a = CellCenter(path[i]);
+            var b = CellCenter(path[i + 1]);
+            var dir = (b - a).Normalized();
+            if (dir.LengthSquared() < 0.01f) continue;
+
+            float phase = Mathf.PosMod(_time * 0.8f + i * 0.33f, 1f);
+            var p = a.Lerp(b, phase);
+            float alpha = 0.10f + 0.30f * Mathf.Sin(phase * Mathf.Pi);
+            DrawArrow(p, dir, new Color(Palette.LaneArrow, alpha), 6f);
+        }
+    }
+
+    private void DrawArrow(Vector2 pos, Vector2 dir, Color color, float size)
+    {
+        var perp = new Vector2(-dir.Y, dir.X);
+        var tip = pos + dir * size * 0.5f;
+        var left = pos - dir * size * 0.35f + perp * size * 0.4f;
+        var right = pos - dir * size * 0.35f - perp * size * 0.4f;
+        DrawLine(left, tip, color, 2f);
+        DrawLine(right, tip, color, 2f);
+    }
+
+    private void DrawSpawnMarker(Vector2I spawn)
+    {
+        var center = CellCenter(spawn);
+        float pulse = 0.5f + 0.5f * Mathf.Sin(_time * 4f);
+        DrawCircle(center, 11f + pulse * 5f, new Color(Palette.Danger, 0.10f));
+        DrawCircle(center, 7f, new Color(Palette.Danger, 0.85f));
+        DrawArc(center, 14f + pulse * 4f, 0, Mathf.Tau, 24, new Color(Palette.Danger, 0.45f), 1.5f);
+    }
+
+    private void DrawGoalMarker(Vector2I goal)
+    {
+        var center = CellCenter(goal);
+        float pulse = 0.5f + 0.5f * Mathf.Sin(_time * 3f);
+        DrawRect(new Rect2(center - new Vector2(12, 30), new Vector2(24, 30)),
+            new Color(Palette.Accent, 0.08f + pulse * 0.05f));
+        DrawCircle(center, 7f + pulse * 2f, new Color(Palette.Accent, 0.85f));
+        DrawArc(center, 13f, 0, Mathf.Tau, 24, new Color(Palette.Accent, 0.45f), 1.5f);
     }
 
     private void DrawDeployPreview()
@@ -309,7 +423,8 @@ public partial class BattleView : Node2D
         {
             var cell = _hoverCell + offset;
             if (!_sim.Map.InBounds(cell)) continue;
-            DrawRect(CellRect(cell), new Color(color, 0.22f));
+            DrawRect(CellRect(cell).Grow(-2f), new Color(color, 0.22f));
+            DrawRect(CellRect(cell).Grow(-2f), new Color(color, 0.5f), false, 1f);
         }
 
         DrawRect(CellRect(_hoverCell), new Color(color, 0.45f));
@@ -320,22 +435,36 @@ public partial class BattleView : Node2D
     {
         foreach (var enemy in _sim.Enemies)
         {
-            var center = GridToPixel(enemy.Position);
+            // A blocked enemy shares its cell with the operator; nudge it sideways so
+            // the two silhouettes stay readable.
+            var visual = enemy.Position;
+            if (enemy.Blocker != null) visual += new Vector2(-0.24f, 0.24f);
+
+            var center = GridToPixel(visual);
             var color = Palette.EnemyColor(enemy.Template.Shape);
             float radius = 12f * enemy.Template.Scale;
 
             if (enemy.SlowFactor < 0.99f)
-                DrawCircle(center, radius + 4f, new Color(0.45f, 0.8f, 1f, 0.35f));
+                DrawCircle(center, radius + 5f, new Color(0.45f, 0.8f, 1f, 0.30f));
 
+            if (enemy.Template.IsElite)
+                DrawCircle(center, radius + 7f, new Color(Palette.Gold, 0.10f));
+
+            // Dark rim keeps enemy silhouettes separate from warm-coloured operators.
+            DrawCircle(center, radius + 2.5f, new Color(0.02f, 0.03f, 0.05f, 0.85f));
             DrawShape(center, radius, enemy.Template.Shape, color);
+
+            if (enemy.HitFlash > 0f)
+            {
+                float flash = Mathf.Clamp(enemy.HitFlash / 0.14f, 0f, 1f);
+                DrawShape(center, radius * 1.05f, enemy.Template.Shape, new Color(1f, 1f, 1f, flash * 0.75f));
+            }
 
             if (enemy.Template.IsElite)
                 DrawArc(center, radius + 3f, 0, Mathf.Tau, 20, Palette.Gold, 1.5f);
 
-            float ratio = (float)enemy.Hp / enemy.MaxHp;
-            var barPos = center + new Vector2(-radius, radius + 4f);
-            DrawRect(new Rect2(barPos, new Vector2(radius * 2f, 3f)), new Color(0, 0, 0, 0.65f));
-            DrawRect(new Rect2(barPos, new Vector2(radius * 2f * ratio, 3f)), Palette.Danger);
+            DrawBar(center + new Vector2(-radius, radius + 5f), radius * 2f, 3f,
+                (float)enemy.Hp / enemy.MaxHp, Palette.Danger);
         }
     }
 
@@ -350,35 +479,137 @@ public partial class BattleView : Node2D
 
             if (op.IsDead)
             {
-                DrawRect(CellRect(op.Cell).Grow(-10f), new Color(0.25f, 0.25f, 0.28f, 0.5f));
-                DrawString(_font, center + new Vector2(-6, 6), "X", HorizontalAlignment.Left, -1, 14, Palette.TextFaint);
+                DrawRect(CellRect(op.Cell).Grow(-12f), new Color(0.18f, 0.19f, 0.22f, 0.45f));
+                DrawLine(center + new Vector2(-6, -6), center + new Vector2(6, 6), Palette.TextFaint, 2f);
+                DrawLine(center + new Vector2(6, -6), center + new Vector2(-6, 6), Palette.TextFaint, 2f);
                 continue;
             }
 
-            DrawCircle(center, 20f, new Color(color, 0.14f));
-            DrawCircle(center, 15f, color.Darkened(0.4f));
-            DrawCircle(center, 12f, color);
+            float scale = Mathf.Lerp(1.35f, 1f, op.DeployAnim);
 
-            var dir = op.Facing.Vector();
-            DrawLine(center, center + dir * 27f, color, 3f);
+            DrawFacingWedge(center, op.Facing, color);
+            DrawCircle(center, 19f * scale, new Color(color, 0.10f));
+            DrawCircle(center, 15f * scale, color.Darkened(0.55f));
+            DrawCircle(center, 12.5f * scale, color);
+            DrawArc(center, 13.5f * scale, 0, Mathf.Tau, 24, new Color(1f, 1f, 1f, 0.35f), 1f);
+            DrawProfessionGlyph(center, op.Profession, color.Darkened(0.2f), scale);
 
             if (ReferenceEquals(op, _selected))
                 DrawArc(center, 22f, 0, Mathf.Tau, 32, Palette.Accent, 2f);
 
-            float ratio = (float)op.Hp / op.MaxHp;
-            var bar = new Rect2(center + new Vector2(-16, 20), new Vector2(32, 4));
-            DrawRect(bar, new Color(0, 0, 0, 0.65f));
-            DrawRect(new Rect2(bar.Position, new Vector2(32 * ratio, 4)), ratio > 0.5f ? Palette.Heal : Palette.Gold);
-
             if (op.Skill != null && op.Skill.Ready)
-                DrawCircle(center + new Vector2(17, -17), 4f, Palette.Accent);
+            {
+                float pulse = 0.5f + 0.5f * Mathf.Sin(_time * 5f);
+                DrawArc(center, 22f + pulse * 3f, 0, Mathf.Tau, 28,
+                    new Color(Palette.Accent, 0.65f - pulse * 0.35f), 1.5f);
+                DrawCircle(center + new Vector2(17, -17), 3.5f, Palette.Accent);
+            }
+
+            if (op.HitFlash > 0f)
+            {
+                float flash = Mathf.Clamp(op.HitFlash / 0.14f, 0f, 1f);
+                DrawCircle(center, 13.5f, new Color(1f, 1f, 1f, flash * 0.7f));
+            }
+
+            var hpColor = (float)op.Hp / op.MaxHp > 0.5f ? Palette.Heal : Palette.Gold;
+            DrawBar(center + new Vector2(-16, 21f), 32f, 4f, (float)op.Hp / op.MaxHp, hpColor);
+        }
+    }
+
+    private void DrawFacingWedge(Vector2 center, Facing facing, Color color)
+    {
+        var dir = facing.Vector();
+        float angle = facing.Angle();
+
+        var points = new[]
+        {
+            center + new Vector2(Mathf.Cos(angle - 0.45f), Mathf.Sin(angle - 0.45f)) * 34f,
+            center + new Vector2(Mathf.Cos(angle + 0.45f), Mathf.Sin(angle + 0.45f)) * 34f,
+            center + dir * 18f,
+        };
+        DrawColoredPolygon(points, new Color(color, 0.10f));
+        DrawLine(center + dir * 20f, center + dir * 33f, new Color(color, 0.55f), 2f);
+    }
+
+    private void DrawProfessionGlyph(Vector2 center, Profession profession, Color color, float scale)
+    {
+        float s = 7f * scale;
+
+        switch (profession)
+        {
+            case Profession.Vanguard:
+                DrawColoredPolygon(new[]
+                {
+                    center + new Vector2(0, -s),
+                    center + new Vector2(s, s * 0.8f),
+                    center + new Vector2(-s, s * 0.8f),
+                }, color);
+                break;
+
+            case Profession.Guard:
+                DrawColoredPolygon(new[]
+                {
+                    center + new Vector2(0, -s),
+                    center + new Vector2(s, 0),
+                    center + new Vector2(0, s),
+                    center + new Vector2(-s, 0),
+                }, color);
+                break;
+
+            case Profession.Defender:
+                DrawRect(new Rect2(center - new Vector2(s * 0.8f, s * 0.8f), new Vector2(s * 1.6f, s * 1.6f)), color);
+                break;
+
+            case Profession.Sniper:
+                DrawArc(center, s, 0, Mathf.Tau, 16, color, 1.5f);
+                DrawLine(center + new Vector2(-s * 1.3f, 0), center + new Vector2(s * 1.3f, 0), color, 1.5f);
+                DrawLine(center + new Vector2(0, -s * 1.3f), center + new Vector2(0, s * 1.3f), color, 1.5f);
+                break;
+
+            case Profession.Caster:
+                var hex = new Vector2[6];
+                for (int i = 0; i < 6; i++)
+                {
+                    float a = Mathf.Pi / 3f * i - Mathf.Pi / 2f;
+                    hex[i] = center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * s;
+                }
+                DrawColoredPolygon(hex, color);
+                break;
+
+            default: // Medic
+                DrawRect(new Rect2(center - new Vector2(s * 0.32f, s), new Vector2(s * 0.64f, s * 2f)), color);
+                DrawRect(new Rect2(center - new Vector2(s, s * 0.32f), new Vector2(s * 2f, s * 0.64f)), color);
+                break;
         }
     }
 
     private void DrawProjectiles()
     {
         foreach (var projectile in _sim.Projectiles)
-            DrawCircle(GridToPixel(projectile.Position), 3f, projectile.Color);
+        {
+            var pos = GridToPixel(projectile.Position);
+
+            switch (projectile.Kind)
+            {
+                case ProjectileKind.Bolt:
+                    var dir = (projectile.To - projectile.From).Normalized();
+                    var tail = GridToPixel(projectile.Position - dir * 0.35f);
+                    DrawLine(tail, pos, new Color(projectile.Color, 0.45f), 2f);
+                    DrawCircle(pos, 3f, projectile.Color);
+                    break;
+
+                case ProjectileKind.Orb:
+                    DrawCircle(pos, 6f, new Color(projectile.Color, 0.22f));
+                    DrawCircle(pos, 3.5f, projectile.Color);
+                    break;
+
+                default:
+                    DrawCircle(pos, 3f, projectile.Color);
+                    DrawLine(pos + new Vector2(-3, 0), pos + new Vector2(3, 0), Colors.White, 1f);
+                    DrawLine(pos + new Vector2(0, -3), pos + new Vector2(0, 3), Colors.White, 1f);
+                    break;
+            }
+        }
     }
 
     private void DrawEffects()
@@ -386,23 +617,60 @@ public partial class BattleView : Node2D
         foreach (var fx in _sim.Effects)
         {
             var pos = GridToPixel(fx.Position);
-            float t = 1f - fx.Alpha;
-            float radius = Mathf.Lerp(4f, 28f, t);
+            float t = fx.Progress;
+            float radius = Mathf.Lerp(4f, 30f, t);
 
             switch (fx.Kind)
             {
                 case EffectKind.Hit:
-                    DrawCircle(pos, radius * 0.45f, new Color(fx.Color, fx.Alpha * 0.8f));
+                    DrawCircle(pos, radius * 0.4f, new Color(fx.Color, fx.Alpha * 0.8f));
+                    for (int i = 0; i < 4; i++)
+                    {
+                        float a = Mathf.Pi * 0.5f * i + t * 2f;
+                        var dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                        DrawLine(pos + dir * radius * 0.3f, pos + dir * radius, new Color(fx.Color, fx.Alpha), 1.5f);
+                    }
                     break;
+
+                case EffectKind.Slash:
+                    float spread = Mathf.Lerp(0.25f, 0.9f, t);
+                    DrawArc(pos, 26f, fx.Angle - spread, fx.Angle + spread, 14, new Color(fx.Color, fx.Alpha), 3f);
+                    break;
+
+                case EffectKind.DamageNumber:
+                    var textPos = pos + new Vector2(0, -18f - t * 26f);
+                    string text = fx.Value > 0 ? fx.Value.ToString() : "MISS";
+                    int size = fx.Value >= 400 ? 19 : 14;
+                    DrawString(_font, textPos - new Vector2(40, 0), text, HorizontalAlignment.Center, 80, size,
+                        new Color(fx.Color, fx.Alpha));
+                    break;
+
+                case EffectKind.Shockwave:
+                    DrawArc(pos, radius * 1.6f, 0, Mathf.Tau, 28, new Color(fx.Color, fx.Alpha), 2f);
+                    break;
+
+                case EffectKind.Death:
+                    DrawCircle(pos, radius, new Color(fx.Color, fx.Alpha * 0.5f));
+                    for (int i = 0; i < 6; i++)
+                    {
+                        float a = Mathf.Tau / 6f * i;
+                        var dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                        DrawLine(pos + dir * radius * 0.4f, pos + dir * radius, new Color(fx.Color, fx.Alpha), 2f);
+                    }
+                    break;
+
                 case EffectKind.Heal:
                     DrawArc(pos, radius, 0, Mathf.Tau, 24, new Color(Palette.Heal, fx.Alpha), 2f);
                     break;
+
                 case EffectKind.Deploy:
                     DrawArc(pos, radius, 0, Mathf.Tau, 24, new Color(Palette.Accent, fx.Alpha), 2f);
                     break;
+
                 case EffectKind.Explosion:
-                    DrawCircle(pos, radius, new Color(Palette.Danger, fx.Alpha * 0.65f));
+                    DrawCircle(pos, radius, new Color(Palette.Danger, fx.Alpha * 0.6f));
                     break;
+
                 case EffectKind.Burst:
                     DrawArc(pos, radius, 0, Mathf.Tau, 24, new Color(fx.Color, fx.Alpha), 2f);
                     break;
@@ -559,6 +827,13 @@ public partial class BattleView : Node2D
     private static Rect2 SkillButtonRect() => new(SelectionPanel.Position + new Vector2(14, 116), new Vector2(120, 30));
 
     private static Rect2 RetreatButtonRect() => new(SelectionPanel.Position + new Vector2(146, 116), new Vector2(110, 30));
+
+    private void DrawBar(Vector2 pos, float width, float height, float ratio, Color color)
+    {
+        ratio = Mathf.Clamp(ratio, 0f, 1f);
+        DrawRect(new Rect2(pos, new Vector2(width, height)), new Color(0f, 0f, 0f, 0.7f));
+        DrawRect(new Rect2(pos, new Vector2(width * ratio, height)), color);
+    }
 
     private int CardAt(Vector2 pos)
     {
@@ -717,15 +992,10 @@ public partial class BattleView : Node2D
         _sim.Cost = 9999f;
         int count = 0;
 
-        // Sample each lane at even intervals instead of taking its first cells, so the
-        // demo squad spreads along the whole route rather than camping the spawn.
+        // Walk every lane cell and rely on HasOperatorNear for spacing, so defenders
+        // spread along the whole route instead of clustering near the spawn.
         var laneCells = new List<Vector2I>();
-        foreach (var path in _sim.Map.Paths)
-        {
-            int step = Mathf.Max(1, path.Count / 4);
-            for (int i = step; i < path.Count; i += step)
-                laneCells.Add(path[i]);
-        }
+        foreach (var path in _sim.Map.Paths) laneCells.AddRange(path);
 
         foreach (var template in _sim.Squad)
         {
@@ -735,6 +1005,7 @@ public partial class BattleView : Node2D
             foreach (var cell in laneCells)
             {
                 if (_sim.GetOperatorAt(cell) != null) continue;
+                if (HasOperatorNear(cell)) continue;
                 if (!_sim.Map.IsDeployable(cell, template.Profession)) continue;
                 if (_sim.TryDeploy(template, cell, Facing.Right))
                 {
@@ -785,6 +1056,14 @@ public partial class BattleView : Node2D
             foreach (var p in path)
                 best = Mathf.Min(best, Mathf.Abs(p.X - cell.X) + Mathf.Abs(p.Y - cell.Y));
         return best;
+    }
+
+    private bool HasOperatorNear(Vector2I cell)
+    {
+        return _sim.GetOperatorAt(cell + new Vector2I(1, 0)) != null
+            || _sim.GetOperatorAt(cell + new Vector2I(-1, 0)) != null
+            || _sim.GetOperatorAt(cell + new Vector2I(0, 1)) != null
+            || _sim.GetOperatorAt(cell + new Vector2I(0, -1)) != null;
     }
 
     private Facing FacingTowardLane(Vector2I cell)

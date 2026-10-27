@@ -36,6 +36,9 @@ public class BattleSimulation
 	/// <summary>Diagnostics: what leaked and when, used by the --auto regression.</summary>
 	public List<string> LeakLog { get; } = new();
 
+	/// <summary>Screen shake amplitude requested by big hits; decays every tick.</summary>
+	public float ScreenShake;
+
 	public Action<string> OnToast;
 
 	public BattleSimulation(StageRuntime stage)
@@ -60,6 +63,7 @@ public class BattleSimulation
 
 		float sdt = dt * Speed;
 		Time += sdt;
+		ScreenShake = Mathf.Max(0f, ScreenShake - sdt * 3f);
 
 		Cost = Mathf.Min(GameConst.CostCap, Cost + GameConst.CostPerSecond * sdt);
 
@@ -137,6 +141,7 @@ public class BattleSimulation
 		Killed++;
 		Cost = Mathf.Min(GameConst.CostCap, Cost + (enemy.Template.IsElite ? 3f : 1f));
 		SpawnExplosion(enemy.Position);
+		SpawnDeath(enemy.Position, Palette.EnemyColor(enemy.Template.Shape));
 
 		if (enemy.Template.SelfDestructDamage > 0)
 		{
@@ -175,6 +180,7 @@ public class BattleSimulation
 		var op = UnitFactory.CreateOperator(template.Clone());
 		op.Cell = cell;
 		op.Facing = facing;
+		op.DeployTimer = 0.5f;
 		Operators.Add(op);
 		Cost -= template.Cost;
 		Deployed++;
@@ -233,29 +239,74 @@ public class BattleSimulation
 	public void DamageEnemy(EnemyBase enemy, int amount, DamageType type, string source)
 	{
 		if (enemy == null || enemy.IsDead) return;
-		DamagePipeline.Resolve(new DamageRequest
+
+		var req = new DamageRequest
 		{
 			RawAmount = amount,
 			Type = type,
 			Target = enemy,
 			Source = source,
-		});
+		};
+		DamagePipeline.Resolve(req);
+
+		if (req.Cancelled)
+		{
+			if (req.Dodged) SpawnDamageNumber(enemy.Position, 0, Palette.TextDim);
+			return;
+		}
+
+		if (req.FinalAmount <= 0) return;
+
+		SpawnDamageNumber(enemy.Position, req.FinalAmount);
+		if (req.FinalAmount >= 400) AddShake(0.32f);
 	}
 
 	public void DamageOperator(OperatorBase op, int amount, DamageType type, string source)
 	{
 		if (op == null || op.IsDead) return;
-		DamagePipeline.Resolve(new DamageRequest
+
+		var req = new DamageRequest
 		{
 			RawAmount = amount,
 			Type = type,
 			Target = op,
 			Source = source,
+		};
+		DamagePipeline.Resolve(req);
+
+		if (req.Cancelled || req.FinalAmount <= 0) return;
+
+		SpawnDamageNumber(new Vector2(op.Cell.X, op.Cell.Y), req.FinalAmount, Palette.Danger);
+		if (req.FinalAmount >= 200) AddShake(0.22f);
+	}
+
+	public void AddShake(float amount) => ScreenShake = Mathf.Max(ScreenShake, amount);
+
+	public void SpawnDamageNumber(Vector2 pos, int value, Color? color = null)
+	{
+		var tint = color ?? (value >= 400 ? Palette.DamageBig : Palette.DamageNormal);
+		Effects.Add(new VisualEffect
+		{
+			Position = pos,
+			Kind = EffectKind.DamageNumber,
+			Value = value,
+			Color = tint,
+			Duration = 0.75f,
 		});
 	}
 
-	public void SpawnProjectile(Vector2 from, Vector2 to, Color color, float duration = 0.12f) =>
-		Projectiles.Add(new Projectile { From = from, To = to, Color = color, Duration = duration });
+	public void SpawnSlash(Vector2 pos, float angle, Color color) =>
+		Effects.Add(new VisualEffect { Position = pos, Color = color, Kind = EffectKind.Slash, Angle = angle, Duration = 0.2f });
+
+	public void SpawnShockwave(Vector2 pos, Color color) =>
+		Effects.Add(new VisualEffect { Position = pos, Color = color, Kind = EffectKind.Shockwave, Duration = 0.5f });
+
+	public void SpawnDeath(Vector2 pos, Color color) =>
+		Effects.Add(new VisualEffect { Position = pos, Color = color, Kind = EffectKind.Death, Duration = 0.45f });
+
+	public void SpawnProjectile(Vector2 from, Vector2 to, Color color, float duration = 0.12f,
+		ProjectileKind kind = ProjectileKind.Bolt) =>
+		Projectiles.Add(new Projectile { From = from, To = to, Color = color, Duration = duration, Kind = kind });
 
 	public void SpawnHitEffect(Vector2 pos, Color color) =>
 		Effects.Add(new VisualEffect { Position = pos, Color = color, Kind = EffectKind.Hit, Duration = 0.3f });

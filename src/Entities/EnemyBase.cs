@@ -36,6 +36,9 @@ public class EnemyBase : IDamageable
     public float AttackTimer;
     public EnemyState State = EnemyState.Moving;
 
+    /// <summary>White flash timer for hit feedback.</summary>
+    public float HitFlash;
+
     public List<StatusEffect> Effects { get; } = new();
 
     public Vector2I Cell => new(Mathf.RoundToInt(Position.X), Mathf.RoundToInt(Position.Y));
@@ -66,11 +69,14 @@ public class EnemyBase : IDamageable
     {
         if (IsDead) return;
         Hp -= amount;
+        HitFlash = 0.14f;
         if (Hp <= 0) Hp = 0;
     }
 
     public void Tick(float dt, BattleSimulation sim)
     {
+        HitFlash = Mathf.Max(0f, HitFlash - dt);
+
         if (IsDead || ReachedGoal) return;
 
         UpdateEffects(dt);

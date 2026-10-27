@@ -43,6 +43,14 @@ public abstract class OperatorBase : IOperator, IDamageable
     public List<EnemyBase> Blocking { get; } = new();
     public float AttackTimer;
 
+    /// <summary>Set on damage, decays over ~0.14s; the view uses it for the white hit flash.</summary>
+    public float HitFlash;
+
+    /// <summary>Counts down after deployment so the view can play a pop-in scale animation.</summary>
+    public float DeployTimer;
+
+    public float DeployAnim => 1f - Mathf.Clamp(DeployTimer / 0.45f, 0f, 1f);
+
     private readonly OperatorStats _base = new();
     private readonly List<StatBuff> _buffs = new();
     private readonly List<StatusEffect> _effects = new();
@@ -116,6 +124,7 @@ public abstract class OperatorBase : IOperator, IDamageable
     {
         if (IsDead) return;
         Hp -= amount;
+        HitFlash = 0.14f;
         if (Hp <= 0)
         {
             Hp = 0;
@@ -135,6 +144,9 @@ public abstract class OperatorBase : IOperator, IDamageable
 
     public virtual void Tick(float dt, BattleSimulation sim)
     {
+        HitFlash = Mathf.Max(0f, HitFlash - dt);
+        DeployTimer = Mathf.Max(0f, DeployTimer - dt);
+
         if (IsDead) return;
 
         UpdateTimers(dt);

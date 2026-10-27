@@ -41,7 +41,7 @@ public class MeleeOperator : OperatorBase
     protected override void PerformAttack(AttackTarget target, BattleSimulation sim)
     {
         sim.DamageEnemy(target.Enemy, Stats.Attack, DamageType.Physical, Name);
-        sim.SpawnHitEffect(target.Enemy.Position, Palette.ProfessionColor(Profession));
+        sim.SpawnSlash(new Vector2(Cell.X, Cell.Y), Facing.Angle(), Palette.ProfessionColor(Profession));
     }
 }
 
@@ -103,7 +103,8 @@ public class RangedOperator : OperatorBase
     protected override void PerformAttack(AttackTarget target, BattleSimulation sim)
     {
         var from = new Vector2(Cell.X, Cell.Y);
-        sim.SpawnProjectile(from, target.Enemy.Position, Palette.ProfessionColor(Profession), 0.12f);
+        var kind = Profession == Profession.Caster ? ProjectileKind.Orb : ProjectileKind.Bolt;
+        sim.SpawnProjectile(from, target.Enemy.Position, Palette.ProfessionColor(Profession), 0.14f, kind);
         sim.DamageEnemy(target.Enemy, Stats.Attack, Profession == Profession.Caster ? DamageType.Magical : DamageType.Physical, Name);
     }
 }
@@ -133,7 +134,10 @@ public class MedicOperator : OperatorBase
 
     protected override void PerformAttack(AttackTarget target, BattleSimulation sim)
     {
+        var to = new Vector2(target.Ally.Cell.X, target.Ally.Cell.Y);
+        sim.SpawnProjectile(new Vector2(Cell.X, Cell.Y), to, Palette.Heal, 0.18f, ProjectileKind.Heal);
         target.Ally.Heal(Stats.Attack);
-        sim.SpawnHealEffect(new Vector2(target.Ally.Cell.X, target.Ally.Cell.Y));
+        sim.SpawnHealEffect(to);
+        sim.SpawnDamageNumber(to, Stats.Attack, Palette.Heal);
     }
 }

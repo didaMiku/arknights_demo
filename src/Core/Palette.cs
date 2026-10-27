@@ -8,8 +8,8 @@ public static class Palette
     public static readonly Color Bg = Color.FromHtml("#0a0e14");
     public static readonly Color Panel = Color.FromHtml("#121821");
     public static readonly Color PanelLight = Color.FromHtml("#1c2430");
-    public static readonly Color EmptyCell = Color.FromHtml("#0e141c");
-    public static readonly Color GridLine = Color.FromHtml("#2b3a4c");
+    public static readonly Color EmptyCell = Color.FromHtml("#111820");
+    public static readonly Color GridLine = Color.FromHtml("#35485f");
     public static readonly Color Ground = Color.FromHtml("#1e2836");
     public static readonly Color Highland = Color.FromHtml("#2c3e56");
     public static readonly Color Wall = Color.FromHtml("#070a0f");
@@ -22,6 +22,15 @@ public static class Palette
     public static readonly Color Text = Color.FromHtml("#dfe9f2");
     public static readonly Color TextDim = Color.FromHtml("#7c8a99");
     public static readonly Color TextFaint = Color.FromHtml("#4a5665");
+
+    // Visual upgrade: lane / plateau / wall patterns and damage numbers.
+    public static readonly Color LaneFill = Color.FromHtml("#0c1a24");
+    public static readonly Color LaneArrow = Color.FromHtml("#00e5ff");
+    public static readonly Color HighlandDot = Color.FromHtml("#35506e");
+    public static readonly Color WallCross = Color.FromHtml("#1b2530");
+    public static readonly Color DamageNormal = Color.FromHtml("#e8f2ff");
+    public static readonly Color DamageBig = Color.FromHtml("#ffcf4d");
+    public static readonly Color DamageHeal = Color.FromHtml("#4dff9e");
 
     public static Color ProfessionColor(Profession p) => p switch
     {
