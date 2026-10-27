@@ -1,0 +1,180 @@
+{
+  "stages": [
+    {
+      "id": "stage_01",
+      "name": "训练场",
+      "description": "单条通道，适合熟悉部署与阻挡。",
+      "hint": "把先锋和近卫放在路径上，远程放高台。",
+      "cols": 11,
+      "rows": 8,
+      "cells": [
+        "...........",
+        ".HHHHHHHHH.",
+        ".H.......H.",
+        "SGGGGGGGGGT",
+        ".H.......H.",
+        ".HHHHHHHHH.",
+        "...........",
+        "..........."
+      ],
+      "spawns": [ { "col": 0, "row": 3 } ],
+      "goals": [ { "col": 10, "row": 3 } ],
+      "paths": [
+        [ { "col": 0, "row": 3 }, { "col": 5, "row": 3 }, { "col": 10, "row": 3 } ]
+      ],
+      "waves": [
+        { "time": 0, "label": "第一波", "groups": [ { "enemy": "slug", "count": 6, "interval": 1.4 } ] },
+        { "time": 14, "label": "第二波", "groups": [ { "enemy": "soldier", "count": 4, "interval": 2.0 } ] },
+        { "time": 30, "label": "第三波", "groups": [
+          { "enemy": "slug", "count": 8, "interval": 1.0 },
+          { "enemy": "soldier", "count": 2, "interval": 3.0, "delay": 2 }
+        ] }
+      ]
+    },
+    {
+      "id": "stage_02",
+      "name": "分岔口",
+      "description": "两条进攻路线，需要分兵把守。",
+      "hint": "上路的敌人会绕到高台后方，记得留人。",
+      "cols": 11,
+      "rows": 8,
+      "cells": [
+        "...........",
+        "...........",
+        ".HHH...HHH.",
+        "SGGGGGGGGGT",
+        ".HHH...HHH.",
+        "...........",
+        "...........",
+        "..........."
+      ],
+      "spawns": [ { "col": 0, "row": 3 } ],
+      "goals": [ { "col": 10, "row": 3 } ],
+      "paths": [
+        [ { "col": 0, "row": 3 }, { "col": 5, "row": 3 }, { "col": 10, "row": 3 } ],
+        [ { "col": 0, "row": 3 }, { "col": 0, "row": 1 }, { "col": 10, "row": 1 }, { "col": 10, "row": 3 } ]
+      ],
+      "waves": [
+        { "time": 0, "label": "第一波", "groups": [
+          { "enemy": "slug", "count": 5, "interval": 1.5, "pathIndex": 0 },
+          { "enemy": "soldier", "count": 3, "interval": 2.2, "pathIndex": 1, "delay": 6 }
+        ] },
+        { "time": 18, "label": "第二波", "groups": [
+          { "enemy": "soldier", "count": 4, "interval": 2.0, "pathIndex": 0 },
+          { "enemy": "slug", "count": 6, "interval": 1.2, "pathIndex": 1 }
+        ] },
+        { "time": 32, "label": "第三波", "groups": [
+          { "enemy": "heavy_guard", "count": 2, "interval": 3.5, "pathIndex": 1 },
+          { "enemy": "soldier", "count": 3, "interval": 2.0, "pathIndex": 0, "delay": 3 }
+        ] }
+      ]
+    },
+    {
+      "id": "stage_03",
+      "name": "高空",
+      "description": "高台稀少，无人机从头顶越过阻挡。",
+      "hint": "只有狙击能打飞行单位，高台位置要精打细算。",
+      "cols": 11,
+      "rows": 8,
+      "cells": [
+        "...........",
+        ".....H.....",
+        "...........",
+        "SGGGGGGGGGT",
+        "...........",
+        ".....H.....",
+        "...........",
+        "..........."
+      ],
+      "spawns": [ { "col": 0, "row": 3 } ],
+      "goals": [ { "col": 10, "row": 3 } ],
+      "paths": [
+        [ { "col": 0, "row": 3 }, { "col": 5, "row": 3 }, { "col": 10, "row": 3 } ]
+      ],
+      "waves": [
+        { "time": 0, "label": "第一波", "groups": [ { "enemy": "slug", "count": 6, "interval": 1.3 } ] },
+        { "time": 12, "label": "第二波", "groups": [ { "enemy": "drone", "count": 4, "interval": 2.0 } ] },
+        { "time": 24, "label": "第三波", "groups": [
+          { "enemy": "soldier", "count": 5, "interval": 1.8 },
+          { "enemy": "drone", "count": 2, "interval": 3.0, "delay": 4 }
+        ] }
+      ]
+    },
+    {
+      "id": "stage_04",
+      "name": "回廊",
+      "description": "自爆虫与术师敌混编，前排压力很大。",
+      "hint": "自爆虫死在干员身边会造成范围真伤，用远程提前清掉。",
+      "cols": 11,
+      "rows": 8,
+      "cells": [
+        "...........",
+        ".HH.....HH.",
+        ".H.......H.",
+        "SGGGGGGGGGT",
+        ".H.......H.",
+        ".HH.....HH.",
+        "...........",
+        "..........."
+      ],
+      "spawns": [ { "col": 0, "row": 3 } ],
+      "goals": [ { "col": 10, "row": 3 } ],
+      "paths": [
+        [ { "col": 0, "row": 3 }, { "col": 5, "row": 3 }, { "col": 10, "row": 3 } ]
+      ],
+      "waves": [
+        { "time": 0, "label": "第一波", "groups": [ { "enemy": "slug", "count": 8, "interval": 1.1 } ] },
+        { "time": 14, "label": "第二波", "groups": [ { "enemy": "bomber", "count": 4, "interval": 2.5 } ] },
+        { "time": 26, "label": "第三波", "groups": [
+          { "enemy": "caster_enemy", "count": 3, "interval": 2.2 },
+          { "enemy": "soldier", "count": 4, "interval": 1.8, "delay": 3 }
+        ] },
+        { "time": 42, "label": "第四波", "groups": [
+          { "enemy": "heavy_guard", "count": 2, "interval": 3.0 },
+          { "enemy": "bomber", "count": 3, "interval": 2.0, "delay": 4 }
+        ] }
+      ]
+    },
+    {
+      "id": "stage_05",
+      "name": "源石巨像",
+      "description": "两条路线，末尾是半血狂暴的源石巨像。",
+      "hint": "Boss 占 3 个阻挡位，先用法术削抗性，再用近卫收尾。",
+      "cols": 11,
+      "rows": 8,
+      "cells": [
+        "...........",
+        ".HHH...HHH.",
+        ".H.......H.",
+        "SGGGGGGGGGT",
+        ".H.......H.",
+        ".HHH...HHH.",
+        "...........",
+        "..........."
+      ],
+      "spawns": [ { "col": 0, "row": 3 } ],
+      "goals": [ { "col": 10, "row": 3 } ],
+      "paths": [
+        [ { "col": 0, "row": 3 }, { "col": 3, "row": 3 }, { "col": 3, "row": 2 }, { "col": 10, "row": 2 }, { "col": 10, "row": 3 } ],
+        [ { "col": 0, "row": 3 }, { "col": 7, "row": 3 }, { "col": 7, "row": 4 }, { "col": 10, "row": 4 }, { "col": 10, "row": 3 } ]
+      ],
+      "waves": [
+        { "time": 0, "label": "第一波", "groups": [ { "enemy": "soldier", "count": 3, "interval": 2.0, "pathIndex": 0 } ] },
+        { "time": 8, "label": "第二波", "groups": [ { "enemy": "soldier", "count": 3, "interval": 2.0, "pathIndex": 1 } ] },
+        { "time": 20, "label": "第三波", "groups": [
+          { "enemy": "heavy_guard", "count": 2, "interval": 3.0, "pathIndex": 0 },
+          { "enemy": "caster_enemy", "count": 3, "interval": 2.2, "pathIndex": 1, "delay": 3 }
+        ] },
+        { "time": 36, "label": "第四波", "groups": [
+          { "enemy": "bomber", "count": 4, "interval": 2.0, "pathIndex": 0 },
+          { "enemy": "drone", "count": 2, "interval": 3.0, "pathIndex": 1, "delay": 2 }
+        ] },
+        { "time": 52, "label": "第五波", "groups": [
+          { "enemy": "elite_armor", "count": 1, "pathIndex": 0 },
+          { "enemy": "soldier", "count": 4, "interval": 1.6, "pathIndex": 1, "delay": 4 }
+        ] },
+        { "time": 68, "label": "BOSS", "groups": [ { "enemy": "boss_golem", "count": 1, "pathIndex": 0 } ] }
+      ]
+    }
+  ]
+}

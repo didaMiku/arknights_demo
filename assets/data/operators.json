@@ -1,0 +1,88 @@
+{
+  "operators": [
+    {
+      "id": "vanguard_signal", "name": "号令", "profession": "Vanguard", "attackKind": "Melee",
+      "rangeShape": "front1", "maxHp": 1200, "attack": 350, "defense": 150, "resist": 0,
+      "block": 2, "attackInterval": 1.2, "cost": 10, "redeployTime": 10,
+      "skillId": "attack_up", "skillName": "进军号令", "skillDesc": "攻击力 +60%，持续 15 秒",
+      "skillChargeTime": 18
+    },
+    {
+      "id": "vanguard_assault", "name": "突袭", "profession": "Vanguard", "attackKind": "Melee",
+      "rangeShape": "front2", "maxHp": 1400, "attack": 300, "defense": 200, "resist": 0,
+      "block": 2, "attackInterval": 1.3, "cost": 12, "redeployTime": 10,
+      "skillId": "attack_speed", "skillName": "急行军", "skillDesc": "攻速 +80%，持续 12 秒",
+      "skillChargeTime": 20
+    },
+    {
+      "id": "guard_blade", "name": "剑锋", "profession": "Guard", "attackKind": "Melee",
+      "rangeShape": "front1", "maxHp": 1800, "attack": 600, "defense": 250, "resist": 0,
+      "block": 2, "attackInterval": 1.1, "cost": 16, "redeployTime": 12,
+      "skillId": "attack_up", "skillName": "锋锐", "skillDesc": "攻击力 +60%，持续 15 秒",
+      "skillChargeTime": 20
+    },
+    {
+      "id": "guard_wave", "name": "斩浪", "profession": "Guard", "attackKind": "Melee",
+      "rangeShape": "around8", "maxHp": 2000, "attack": 520, "defense": 300, "resist": 0,
+      "block": 2, "attackInterval": 1.3, "cost": 18, "redeployTime": 14,
+      "skillId": "burst", "skillName": "回旋斩", "skillDesc": "对周围敌人造成法术爆发伤害",
+      "skillChargeTime": 25
+    },
+    {
+      "id": "defender_bastion", "name": "壁垒", "profession": "Defender", "attackKind": "Melee",
+      "rangeShape": "front1", "maxHp": 3500, "attack": 300, "defense": 600, "resist": 10,
+      "block": 3, "attackInterval": 1.5, "cost": 20, "redeployTime": 18,
+      "skillId": "defense_up", "skillName": "铁壁", "skillDesc": "防御力 +100%，持续 20 秒",
+      "skillChargeTime": 22
+    },
+    {
+      "id": "defender_watch", "name": "守望", "profession": "Defender", "attackKind": "Melee",
+      "rangeShape": "front1", "maxHp": 3000, "attack": 280, "defense": 500, "resist": 20,
+      "block": 3, "attackInterval": 1.6, "cost": 18, "redeployTime": 16,
+      "skillId": "defense_up", "skillName": "警戒", "skillDesc": "防御力 +100%，持续 20 秒",
+      "skillChargeTime": 24
+    },
+    {
+      "id": "sniper_cold", "name": "冷枪", "profession": "Sniper", "attackKind": "Ranged",
+      "rangeShape": "front3x3", "maxHp": 900, "attack": 450, "defense": 80, "resist": 0,
+      "block": 1, "attackInterval": 0.9, "cost": 14, "redeployTime": 12,
+      "skillId": "attack_speed", "skillName": "连射", "skillDesc": "攻速 +80%，持续 12 秒",
+      "skillChargeTime": 16
+    },
+    {
+      "id": "sniper_eagle", "name": "鹰眼", "profession": "Sniper", "attackKind": "Ranged",
+      "rangeShape": "line4", "maxHp": 1000, "attack": 700, "defense": 100, "resist": 0,
+      "block": 1, "attackInterval": 1.6, "cost": 18, "redeployTime": 14,
+      "skillId": "burst", "skillName": "穿透射击", "skillDesc": "爆发法术伤害，对空特化",
+      "skillChargeTime": 24
+    },
+    {
+      "id": "caster_bomb", "name": "轰击", "profession": "Caster", "attackKind": "Ranged",
+      "rangeShape": "front3x3", "maxHp": 850, "attack": 600, "defense": 60, "resist": 0,
+      "block": 1, "attackInterval": 1.4, "cost": 20, "redeployTime": 16,
+      "skillId": "burst", "skillName": "定点爆破", "skillDesc": "范围内法术爆发",
+      "skillChargeTime": 22
+    },
+    {
+      "id": "caster_frost", "name": "霜冻", "profession": "Caster", "attackKind": "Ranged",
+      "rangeShape": "around8", "maxHp": 900, "attack": 500, "defense": 70, "resist": 10,
+      "block": 1, "attackInterval": 1.5, "cost": 22, "redeployTime": 18,
+      "skillId": "slow_field", "skillName": "冰封", "skillDesc": "范围内敌人减速 50%，持续 6 秒",
+      "skillChargeTime": 20
+    },
+    {
+      "id": "medic_dew", "name": "白露", "profession": "Medic", "attackKind": "Heal",
+      "rangeShape": "front3x3", "maxHp": 800, "attack": 300, "defense": 50, "resist": 0,
+      "block": 0, "attackInterval": 1.2, "cost": 16, "redeployTime": 14,
+      "skillId": "heal_all", "skillName": "甘露", "skillDesc": "群体治疗范围内友方",
+      "skillChargeTime": 18
+    },
+    {
+      "id": "medic_hush", "name": "静默", "profession": "Medic", "attackKind": "Heal",
+      "rangeShape": "around8", "maxHp": 750, "attack": 250, "defense": 40, "resist": 0,
+      "block": 0, "attackInterval": 1.0, "cost": 20, "redeployTime": 16,
+      "skillId": "heal_all", "skillName": "静息", "skillDesc": "群体治疗，范围更广",
+      "skillChargeTime": 16
+    }
+  ]
+}

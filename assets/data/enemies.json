@@ -1,0 +1,39 @@
+{
+  "enemies": [
+    {
+      "id": "slug", "name": "源石虫", "maxHp": 400, "attack": 100, "defense": 0, "resist": 0,
+      "speed": 1.0, "attackInterval": 1.5, "blockCost": 1, "shape": "circle", "scale": 0.8
+    },
+    {
+      "id": "soldier", "name": "士兵", "maxHp": 900, "attack": 250, "defense": 100, "resist": 0,
+      "speed": 0.8, "attackInterval": 1.2, "blockCost": 1, "shape": "circle", "scale": 1.0
+    },
+    {
+      "id": "heavy_guard", "name": "重装卫兵", "maxHp": 1500, "attack": 400, "defense": 200, "resist": 20,
+      "speed": 0.5, "attackInterval": 1.8, "blockCost": 1, "shape": "square", "scale": 1.1
+    },
+    {
+      "id": "caster_enemy", "name": "术师敌", "maxHp": 700, "attack": 350, "defense": 50, "resist": 30,
+      "speed": 0.7, "attackInterval": 2.0, "blockCost": 1, "shape": "triangle", "scale": 1.0
+    },
+    {
+      "id": "drone", "name": "无人机", "maxHp": 600, "attack": 200, "defense": 50, "resist": 0,
+      "speed": 0.9, "attackInterval": 1.5, "blockCost": 0, "flying": true, "shape": "diamond", "scale": 0.9
+    },
+    {
+      "id": "bomber", "name": "自爆虫", "maxHp": 500, "attack": 0, "defense": 0, "resist": 0,
+      "speed": 0.9, "attackInterval": 1.5, "blockCost": 1, "selfDestructDamage": 300,
+      "shape": "diamond", "scale": 0.9
+    },
+    {
+      "id": "elite_armor", "name": "精英·重甲", "maxHp": 3500, "attack": 800, "defense": 450, "resist": 30,
+      "speed": 0.5, "attackInterval": 1.5, "blockCost": 2, "isElite": true,
+      "shape": "hexagon", "scale": 1.25
+    },
+    {
+      "id": "boss_golem", "name": "源石巨像", "maxHp": 6000, "attack": 1200, "defense": 350, "resist": 30,
+      "speed": 0.3, "attackInterval": 2.0, "blockCost": 3, "isElite": true,
+      "shape": "hexagon", "scale": 1.7
+    }
+  ]
+}
