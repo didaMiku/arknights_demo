@@ -88,6 +88,25 @@ public class BurstSkill : SkillBase
     }
 }
 
+/// <summary>Vanguard signature: convert a ready skill into deploy points.</summary>
+public class CostRecoverSkill : SkillBase
+{
+    public int Amount = 20;
+
+    protected override void OnActivate(OperatorBase owner, BattleSimulation sim)
+    {
+        float before = sim.Cost;
+        sim.Cost = Mathf.Min(GameConst.CostCap, sim.Cost + Amount);
+        int gained = Mathf.RoundToInt(sim.Cost - before);
+
+        var pos = new Vector2(owner.Cell.X, owner.Cell.Y);
+        sim.SpawnBurst(pos, Palette.Gold);
+        sim.SpawnShockwave(pos, Palette.Gold);
+        sim.SpawnDamageNumber(pos, gained, Palette.Gold);
+        sim.Toast($"{owner.Name} 回复 {gained} 费用");
+    }
+}
+
 /// <summary>Factory method for skills: ids in the JSON table map to concrete classes here.</summary>
 public static class SkillFactory
 {
@@ -101,6 +120,7 @@ public static class SkillFactory
             "heal_all" => new HealAllSkill(),
             "slow_field" => new SlowFieldSkill(),
             "burst" => new BurstSkill(),
+            "cost_recover" => new CostRecoverSkill(),
             _ => new AttackUpSkill(),
         };
         skill.Id = id;

@@ -4,14 +4,14 @@
       "id": "vanguard_signal", "name": "号令", "profession": "Vanguard", "attackKind": "Melee",
       "rangeShape": "front1", "maxHp": 1200, "attack": 350, "defense": 150, "resist": 0,
       "block": 2, "attackInterval": 1.2, "cost": 10, "redeployTime": 10,
-      "skillId": "attack_up", "skillName": "进军号令", "skillDesc": "攻击力 +60%，持续 15 秒",
+      "skillId": "cost_recover", "skillName": "进军号令", "skillDesc": "立即回复 20 部署费用",
       "skillChargeTime": 18
     },
     {
       "id": "vanguard_assault", "name": "突袭", "profession": "Vanguard", "attackKind": "Melee",
       "rangeShape": "front2", "maxHp": 1400, "attack": 300, "defense": 200, "resist": 0,
       "block": 2, "attackInterval": 1.3, "cost": 12, "redeployTime": 10,
-      "skillId": "attack_speed", "skillName": "急行军", "skillDesc": "攻速 +80%，持续 12 秒",
+      "skillId": "cost_recover", "skillName": "急行军", "skillDesc": "立即回复 20 部署费用",
       "skillChargeTime": 20
     },
     {

@@ -273,7 +273,7 @@ public partial class BattleView : Node2D
         // Sparse dot grid, keeps the empty area from reading as a flat void.
         for (int x = 0; x < 1280; x += 32)
             for (int y = 0; y < 720; y += 32)
-                DrawRect(new Rect2(x, y, 1, 1), new Color(0.10f, 0.13f, 0.17f, 0.8f));
+                DrawRect(new Rect2(x, y, 1, 1), new Color(0.72f, 0.78f, 0.85f, 0.75f));
     }
 
     private void DrawMap()
@@ -438,34 +438,91 @@ public partial class BattleView : Node2D
             // A blocked enemy shares its cell with the operator; nudge it sideways so
             // the two silhouettes stay readable.
             var visual = enemy.Position;
-            if (enemy.Blocker != null) visual += new Vector2(-0.24f, 0.24f);
-
-            var center = GridToPixel(visual);
-            var color = Palette.EnemyColor(enemy.Template.Shape);
-            float radius = 12f * enemy.Template.Scale;
-
-            if (enemy.SlowFactor < 0.99f)
-                DrawCircle(center, radius + 5f, new Color(0.45f, 0.8f, 1f, 0.30f));
-
-            if (enemy.Template.IsElite)
-                DrawCircle(center, radius + 7f, new Color(Palette.Gold, 0.10f));
-
-            // Dark rim keeps enemy silhouettes separate from warm-coloured operators.
-            DrawCircle(center, radius + 2.5f, new Color(0.02f, 0.03f, 0.05f, 0.85f));
-            DrawShape(center, radius, enemy.Template.Shape, color);
-
-            if (enemy.HitFlash > 0f)
-            {
-                float flash = Mathf.Clamp(enemy.HitFlash / 0.14f, 0f, 1f);
-                DrawShape(center, radius * 1.05f, enemy.Template.Shape, new Color(1f, 1f, 1f, flash * 0.75f));
-            }
-
-            if (enemy.Template.IsElite)
-                DrawArc(center, radius + 3f, 0, Mathf.Tau, 20, Palette.Gold, 1.5f);
-
-            DrawBar(center + new Vector2(-radius, radius + 5f), radius * 2f, 3f,
-                (float)enemy.Hp / enemy.MaxHp, Palette.Danger);
+            if (enemy.Blocker != null) visual += new Vector2(-0.26f, 0.26f);
+            DrawEnemyFigure(enemy, GridToPixel(visual));
         }
+    }
+
+    private void DrawEnemyFigure(EnemyBase e, Vector2 c)
+    {
+        var t = e.Template;
+        var color = Palette.EnemyColor(t.Shape);
+        float s = t.Scale;
+        float bob = Mathf.Sin(_time * 3.2f + e.Position.X * 2.1f) * 1.1f;
+        float atk = e.AttackAnim > 0f ? 1f - e.AttackAnim / 0.28f : -1f;
+        float lunge = atk >= 0f ? Mathf.Sin(atk * Mathf.Pi) * 4f : 0f;
+        float flash = Mathf.Clamp(e.HitFlash / 0.14f, 0f, 1f);
+        var foot = new Vector2(c.X, c.Y + 13f * s) + new Vector2(0, bob);
+
+        if (e.SlowFactor < 0.99f)
+            DrawCircle(c, 16f * s, new Color(0.35f, 0.65f, 0.95f, 0.22f));
+
+        DrawEllipse(new Vector2(c.X, foot.Y + 2f), 11f * s, 3.5f * s, new Color(0.15f, 0.2f, 0.28f, 0.16f));
+
+        switch (t.Id)
+        {
+            case "drone":
+                DrawRoundedRect(new Rect2(c.X - 9f * s, c.Y - 5f * s, 18f * s, 10f * s), 4f, color);
+                float rotor = _time * 20f;
+                for (int i = 0; i < 2; i++)
+                {
+                    float a = rotor + i * Mathf.Pi;
+                    var d = new Vector2(Mathf.Cos(a), Mathf.Sin(a) * 0.30f);
+                    DrawLine(c + d * 15f * s, c - d * 15f * s, color.Darkened(0.25f), 1.5f);
+                }
+                DrawCircle(c, 3f, Palette.Text);
+                break;
+
+            case "bomber":
+                for (int i = 0; i < 8; i++)
+                {
+                    float a = Mathf.Tau * i / 8f + _time;
+                    var d = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                    DrawLine(c + d * 9f * s, c + d * 14f * s, color.Darkened(0.3f), 2f);
+                }
+                DrawCircle(c + new Vector2(0, -2), 9f * s, color);
+                DrawCircle(c + new Vector2(0, -2), 3f, Palette.Gold);
+                break;
+
+            case "slug":
+                DrawRoundedRect(new Rect2(c.X - 11f * s, c.Y - 5f * s, 22f * s, 11f * s), 5f, color);
+                for (int i = 0; i < 3; i++)
+                {
+                    float legSwing = Mathf.Sin(_time * 8f + i * 1.4f) * 2f;
+                    var legTop = new Vector2(c.X - 7f * s + i * 7f * s, c.Y + 5f * s);
+                    DrawLine(legTop, legTop + new Vector2(legSwing, 5f * s), color.Darkened(0.35f), 2f);
+                }
+                DrawCircle(c + new Vector2(6f * s, -3f * s), 1.6f, Palette.Text);
+                break;
+
+            case "boss_golem":
+            case "elite_armor":
+                DrawRoundedRect(new Rect2(c.X - 13f * s, c.Y - 15f * s, 26f * s, 29f * s), 6f, color);
+                DrawCircle(c + new Vector2(0, -18f * s), 8f * s, color.Darkened(0.15f));
+                DrawRect(new Rect2(c.X - 5f * s, c.Y - 21f * s, 10f * s, 3f * s), Palette.Gold);
+                DrawLine(new Vector2(c.X - 13f * s, c.Y - 8f * s), new Vector2(c.X - 19f * s, c.Y + 2f * s),
+                    color.Darkened(0.25f), 5f);
+                DrawLine(new Vector2(c.X + 13f * s, c.Y - 8f * s), new Vector2(c.X + 19f * s, c.Y + 2f * s),
+                    color.Darkened(0.25f), 5f);
+                break;
+
+            default:
+                DrawRoundedRect(new Rect2(c.X - 7f * s, c.Y - 14f * s, 14f * s, 18f * s), 4f, color);
+                DrawCircle(c + new Vector2(0, -18f * s), 6f * s, color.Darkened(0.2f));
+                DrawCircle(c + new Vector2(-2f * s, -18f * s), 1.2f, Palette.Text);
+                DrawCircle(c + new Vector2(2f * s, -18f * s), 1.2f, Palette.Text);
+                DrawLine(new Vector2(c.X + 7f * s, c.Y - 7f * s),
+                    new Vector2(c.X + 16f * s + lunge, c.Y - 11f * s), Palette.Text, 2f);
+                break;
+        }
+
+        if (flash > 0f)
+            DrawCircle(c, 12f * s, new Color(1f, 1f, 1f, flash * 0.60f));
+
+        if (t.IsElite)
+            DrawArc(c, 17f * s, 0, Mathf.Tau, 20, Palette.Gold, 1.5f);
+
+        DrawBar(new Vector2(c.X - 12f * s, foot.Y + 5f), 24f * s, 3f, (float)e.Hp / e.MaxHp, Palette.Danger);
     }
 
     private void DrawOperators()
@@ -479,41 +536,140 @@ public partial class BattleView : Node2D
 
             if (op.IsDead)
             {
-                DrawRect(CellRect(op.Cell).Grow(-12f), new Color(0.18f, 0.19f, 0.22f, 0.45f));
-                DrawLine(center + new Vector2(-6, -6), center + new Vector2(6, 6), Palette.TextFaint, 2f);
-                DrawLine(center + new Vector2(6, -6), center + new Vector2(-6, 6), Palette.TextFaint, 2f);
+                var foot = new Vector2(center.X, center.Y + 12f);
+                DrawEllipse(new Vector2(foot.X, foot.Y + 2f), 12f, 4f, new Color(0.3f, 0.35f, 0.4f, 0.15f));
+                DrawLine(foot + new Vector2(-8, 0), foot + new Vector2(8, -7), Palette.TextFaint, 2f);
+                DrawLine(foot + new Vector2(8, 0), foot + new Vector2(-8, -7), Palette.TextFaint, 2f);
                 continue;
             }
 
-            float scale = Mathf.Lerp(1.35f, 1f, op.DeployAnim);
-
-            DrawFacingWedge(center, op.Facing, color);
-            DrawCircle(center, 19f * scale, new Color(color, 0.10f));
-            DrawCircle(center, 15f * scale, color.Darkened(0.55f));
-            DrawCircle(center, 12.5f * scale, color);
-            DrawArc(center, 13.5f * scale, 0, Mathf.Tau, 24, new Color(1f, 1f, 1f, 0.35f), 1f);
-            DrawProfessionGlyph(center, op.Profession, color.Darkened(0.2f), scale);
+            DrawOperatorFigure(op, center, color);
 
             if (ReferenceEquals(op, _selected))
-                DrawArc(center, 22f, 0, Mathf.Tau, 32, Palette.Accent, 2f);
+                DrawArc(new Vector2(center.X, center.Y + 4f), 24f, 0, Mathf.Tau, 32, Palette.Accent, 2f);
 
             if (op.Skill != null && op.Skill.Ready)
             {
                 float pulse = 0.5f + 0.5f * Mathf.Sin(_time * 5f);
-                DrawArc(center, 22f + pulse * 3f, 0, Mathf.Tau, 28,
-                    new Color(Palette.Accent, 0.65f - pulse * 0.35f), 1.5f);
-                DrawCircle(center + new Vector2(17, -17), 3.5f, Palette.Accent);
-            }
-
-            if (op.HitFlash > 0f)
-            {
-                float flash = Mathf.Clamp(op.HitFlash / 0.14f, 0f, 1f);
-                DrawCircle(center, 13.5f, new Color(1f, 1f, 1f, flash * 0.7f));
+                DrawArc(new Vector2(center.X, center.Y + 4f), 24f + pulse * 3f, 0, Mathf.Tau, 28,
+                    new Color(Palette.Accent, 0.70f - pulse * 0.40f), 1.5f);
             }
 
             var hpColor = (float)op.Hp / op.MaxHp > 0.5f ? Palette.Heal : Palette.Gold;
-            DrawBar(center + new Vector2(-16, 21f), 32f, 4f, (float)op.Hp / op.MaxHp, hpColor);
+            DrawBar(new Vector2(center.X - 16f, center.Y + 22f), 32f, 4f, (float)op.Hp / op.MaxHp, hpColor);
         }
+    }
+
+    private void DrawOperatorFigure(OperatorBase op, Vector2 center, Color color)
+    {
+        float phase = op.Cell.X * 1.7f + op.Cell.Y * 2.3f;
+        float bob = Mathf.Sin(_time * 2.2f + phase) * 1.3f;
+        float atk = op.AttackAnim > 0f ? 1f - op.AttackAnim / 0.3f : -1f;
+        float swing = atk >= 0f ? Mathf.Sin(atk * Mathf.Pi) : 0f;
+        float flash = Mathf.Clamp(op.HitFlash / 0.14f, 0f, 1f);
+        var dir = op.Facing.Vector();
+
+        var foot = new Vector2(center.X, center.Y + 14f) + new Vector2(0, bob);
+        var hip = foot + new Vector2(0, -13f);
+        var bodyTop = foot + new Vector2(swing * 1.2f, -29f);
+
+        // shadow
+        DrawEllipse(new Vector2(foot.X, foot.Y + 2f), 13f, 4f, new Color(0.15f, 0.2f, 0.28f, 0.18f));
+
+        // legs
+        DrawLine(new Vector2(foot.X - 3.5f, foot.Y), hip + new Vector2(-1, 0), color.Darkened(0.45f), 4f);
+        DrawLine(new Vector2(foot.X + 3.5f, foot.Y), hip + new Vector2(1, 0), color.Darkened(0.45f), 4f);
+
+        // body
+        var bodyRect = new Rect2(bodyTop.X - 8f, bodyTop.Y, 16f, 17f);
+        DrawRoundedRect(bodyRect, 5f, color);
+        DrawRect(new Rect2(bodyRect.Position + new Vector2(0, 10), new Vector2(16, 7)), color.Darkened(0.18f));
+
+        // arm + weapon
+        var shoulder = bodyTop + new Vector2(dir.X * 4f, 5f);
+        var hand = shoulder + dir * (9f + swing * 9f) + new Vector2(0, 8f);
+        DrawLine(shoulder, hand, Palette.SkinShade, 3f);
+        DrawWeapon(hand, op.Facing, op.Profession, color, swing);
+
+        // head
+        var head = bodyTop + new Vector2(0, -6f);
+        DrawCircle(head, 6.6f, Palette.Skin);
+        DrawArc(head, 6.0f, Mathf.Pi, Mathf.Tau, 14, color.Darkened(0.25f), 4.2f);
+        DrawCircle(head + new Vector2(dir.X * 2.2f - 1.5f, 0.6f), 0.85f, Palette.Text);
+        DrawCircle(head + new Vector2(dir.X * 2.2f + 1.7f, 0.6f), 0.85f, Palette.Text);
+
+        if (flash > 0f)
+        {
+            DrawCircle(head, 6.6f, new Color(1f, 1f, 1f, flash * 0.85f));
+            DrawRoundedRect(bodyRect, 5f, new Color(1f, 1f, 1f, flash * 0.7f));
+        }
+    }
+
+    private void DrawWeapon(Vector2 hand, Facing facing, Profession p, Color color, float swing)
+    {
+        var dir = facing.Vector();
+        var tip = hand + dir * (13f + swing * 8f);
+
+        switch (p)
+        {
+            case Profession.Vanguard:
+                DrawLine(hand - dir * 7f, tip, Color.FromHtml("#b98a4a"), 2.5f);
+                DrawColoredPolygon(new[]
+                {
+                    tip,
+                    tip - dir * 5f + new Vector2(-dir.Y, dir.X) * 3f,
+                    tip - dir * 5f - new Vector2(-dir.Y, dir.X) * 3f,
+                }, color);
+                break;
+
+            case Profession.Guard:
+                DrawLine(hand, tip, Color.FromHtml("#cfd9e3"), 3f);
+                DrawLine(hand + new Vector2(-dir.Y, dir.X) * 4f, hand - new Vector2(-dir.Y, dir.X) * 4f, color, 3f);
+                break;
+
+            case Profession.Defender:
+                DrawRoundedRect(new Rect2(hand + dir * 4f - new Vector2(6, 9), new Vector2(12, 18)), 3f, color);
+                DrawRect(new Rect2(hand + dir * 4f - new Vector2(6, 9), new Vector2(12, 18)), color.Darkened(0.35f), false, 1.5f);
+                break;
+
+            case Profession.Sniper:
+                DrawLine(hand, hand + dir * 19f, Color.FromHtml("#4a5563"), 2.5f);
+                DrawCircle(hand + dir * 5f, 2.5f, color);
+                break;
+
+            case Profession.Caster:
+                DrawLine(hand - dir * 5f, hand + dir * 12f, Color.FromHtml("#8a6a4a"), 2f);
+                DrawCircle(hand + dir * 12f, 3.5f, color);
+                break;
+
+            default:
+                DrawLine(hand - dir * 5f, hand + dir * 12f, Color.FromHtml("#b8c4cf"), 2f);
+                var c = hand + dir * 12f;
+                DrawRect(new Rect2(c - new Vector2(4, 1), new Vector2(8, 2)), Palette.Heal);
+                DrawRect(new Rect2(c - new Vector2(1, 4), new Vector2(2, 8)), Palette.Heal);
+                break;
+        }
+    }
+
+    private void DrawRoundedRect(Rect2 r, float radius, Color c)
+    {
+        DrawRect(new Rect2(r.Position.X + radius, r.Position.Y, r.Size.X - radius * 2, r.Size.Y), c);
+        DrawRect(new Rect2(r.Position.X, r.Position.Y + radius, r.Size.X, r.Size.Y - radius * 2), c);
+        DrawCircle(new Vector2(r.Position.X + radius, r.Position.Y + radius), radius, c);
+        DrawCircle(new Vector2(r.End.X - radius, r.Position.Y + radius), radius, c);
+        DrawCircle(new Vector2(r.Position.X + radius, r.End.Y - radius), radius, c);
+        DrawCircle(new Vector2(r.End.X - radius, r.End.Y - radius), radius, c);
+    }
+
+    private void DrawEllipse(Vector2 c, float rx, float ry, Color color)
+    {
+        var pts = new Vector2[20];
+        for (int i = 0; i < 20; i++)
+        {
+            float a = Mathf.Tau * i / 20f;
+            pts[i] = c + new Vector2(Mathf.Cos(a) * rx, Mathf.Sin(a) * ry);
+        }
+        DrawColoredPolygon(pts, color);
     }
 
     private void DrawFacingWedge(Vector2 center, Facing facing, Color color)
@@ -678,35 +834,94 @@ public partial class BattleView : Node2D
         }
     }
 
+    private enum IconKind { Diamond, Heart, Waves, Clock }
+
     private void DrawTopBar()
     {
         DrawRect(new Rect2(0, 0, 1280, 56), Palette.Panel);
-        DrawRect(new Rect2(0, 56, 1280, 1), Palette.GridLine);
+        DrawRect(new Rect2(0, 55, 1280, 1), new Color(Palette.Accent, 0.30f));
 
-        DrawString(_font, new Vector2(56, 34), "COST", HorizontalAlignment.Left, -1, 12, Palette.TextDim);
-        DrawString(_font, new Vector2(108, 38), $"{(int)_sim.Cost}", HorizontalAlignment.Left, -1, 24, Palette.Accent);
+        var costRect = new Rect2(28, 8, 164, 40);
+        DrawChamfer(costRect, 10f, Colors.White, new Color(Palette.Accent, 0.55f), 1.2f);
+        DrawIcon(new Vector2(50, 28), IconKind.Diamond, Palette.Accent, 7f);
+        DrawString(_font, new Vector2(68, 24), "COST", HorizontalAlignment.Left, -1, 9, Palette.TextDim);
+        DrawString(_font, new Vector2(68, 42), $"{(int)_sim.Cost}", HorizontalAlignment.Left, -1, 22, Palette.Accent);
 
-        DrawString(_font, new Vector2(200, 34), "生命", HorizontalAlignment.Left, -1, 12, Palette.TextDim);
-        DrawString(_font, new Vector2(248, 38), $"{_sim.Life} / {GameConst.StartLife}", HorizontalAlignment.Left, -1, 20,
-            _sim.Life <= 1 ? Palette.Danger : Palette.Text);
+        DrawStat(new Vector2(248, 10), IconKind.Heart, "生命",
+            $"{_sim.Life} / {GameConst.StartLife}", _sim.Life <= 1 ? Palette.Danger : Palette.Text);
 
         int wave = 0;
         foreach (var t in _sim.Stage.WaveStartTimes)
             if (_sim.Time >= t) wave++;
         wave = Mathf.Max(1, wave);
+        DrawStat(new Vector2(420, 10), IconKind.Waves, "波次", $"{wave} / {_sim.Stage.WaveCount}", Palette.Text);
+        DrawStat(new Vector2(600, 10), IconKind.Clock, "时间", FormatTime(_sim.Time), Palette.Text);
 
-        DrawString(_font, new Vector2(410, 34), "波次", HorizontalAlignment.Left, -1, 12, Palette.TextDim);
-        DrawString(_font, new Vector2(456, 38), $"{wave} / {_sim.Stage.WaveCount}", HorizontalAlignment.Left, -1, 18, Palette.Text);
+        DrawString(_font, new Vector2(1090, 24), _sim.Paused ? "已暂停" : $"{_sim.Speed:0}x",
+            HorizontalAlignment.Left, -1, 11, _sim.Paused ? Palette.Gold : Palette.TextDim);
+        DrawString(_font, new Vector2(1090, 42), _sim.Stage.Name, HorizontalAlignment.Left, -1, 15, Palette.Accent);
+    }
 
-        DrawString(_font, new Vector2(570, 34), "时间", HorizontalAlignment.Left, -1, 12, Palette.TextDim);
-        DrawString(_font, new Vector2(614, 38), FormatTime(_sim.Time), HorizontalAlignment.Left, -1, 18, Palette.Text);
+    private void DrawStat(Vector2 pos, IconKind icon, string label, string value, Color color)
+    {
+        DrawIcon(pos + new Vector2(4, 22), icon, new Color(Palette.TextDim, 0.9f), 6f);
+        DrawString(_font, pos + new Vector2(22, 14), label, HorizontalAlignment.Left, -1, 9, Palette.TextDim);
+        DrawString(_font, pos + new Vector2(22, 34), value, HorizontalAlignment.Left, -1, 17, color);
+    }
 
-        string speed = _sim.Paused ? "已暂停" : $"{_sim.Speed:0}x";
-        DrawString(_font, new Vector2(760, 38), speed, HorizontalAlignment.Left, -1, 16,
-            _sim.Paused ? Palette.Gold : Palette.TextDim);
+    private void DrawIcon(Vector2 c, IconKind kind, Color color, float s)
+    {
+        switch (kind)
+        {
+            case IconKind.Diamond:
+                DrawColoredPolygon(new[]
+                {
+                    c + new Vector2(0, -s), c + new Vector2(s, 0),
+                    c + new Vector2(0, s), c + new Vector2(-s, 0),
+                }, color);
+                break;
 
-        DrawString(_font, new Vector2(900, 34), "关卡", HorizontalAlignment.Left, -1, 12, Palette.TextDim);
-        DrawString(_font, new Vector2(946, 38), _sim.Stage.Name, HorizontalAlignment.Left, -1, 18, Palette.Accent);
+            case IconKind.Heart:
+                DrawCircle(c + new Vector2(-s * 0.42f, -s * 0.22f), s * 0.5f, color);
+                DrawCircle(c + new Vector2(s * 0.42f, -s * 0.22f), s * 0.5f, color);
+                DrawColoredPolygon(new[]
+                {
+                    c + new Vector2(-s * 0.92f, -s * 0.05f),
+                    c + new Vector2(s * 0.92f, -s * 0.05f),
+                    c + new Vector2(0, s * 0.8f),
+                }, color);
+                break;
+
+            case IconKind.Waves:
+                for (int i = 0; i < 3; i++)
+                    DrawLine(c + new Vector2(-s, -s * 0.55f + i * s * 0.55f),
+                        c + new Vector2(s, -s * 0.55f + i * s * 0.55f), color, 1.5f);
+                break;
+
+            case IconKind.Clock:
+                DrawArc(c, s * 0.9f, 0, Mathf.Tau, 20, color, 1.5f);
+                DrawLine(c, c + new Vector2(0, -s * 0.55f), color, 1.5f);
+                DrawLine(c, c + new Vector2(s * 0.45f, 0), color, 1.5f);
+                break;
+        }
+    }
+
+    private void DrawChamfer(Rect2 rect, float cut, Color fill, Color border, float borderWidth)
+    {
+        var p = rect.Position;
+        var s = rect.Size;
+        var pts = new[]
+        {
+            p + new Vector2(cut, 0),
+            p + new Vector2(s.X, 0),
+            p + new Vector2(s.X, s.Y),
+            p + new Vector2(0, s.Y),
+            p + new Vector2(0, cut),
+        };
+
+        DrawColoredPolygon(pts, fill);
+        for (int i = 0; i < pts.Length; i++)
+            DrawLine(pts[i], pts[(i + 1) % pts.Length], border, borderWidth);
     }
 
     private void DrawCards()
@@ -725,24 +940,28 @@ public partial class BattleView : Node2D
             bool affordable = _sim.Cost >= template.Cost;
             var color = Palette.ProfessionColor(template.Profession);
 
-            DrawRect(rect, used ? new Color(0.07f, 0.08f, 0.1f) : Palette.PanelLight);
-            DrawRect(rect, used ? Palette.TextFaint : color, false, 1.5f);
-            DrawRect(new Rect2(rect.Position, new Vector2(CardW, 4)), used ? Palette.TextFaint : color);
+            var fill = used ? new Color(0.93f, 0.95f, 0.97f) : Colors.White;
+            var border = used ? new Color(Palette.TextFaint, 0.7f) : color;
 
-            DrawRect(new Rect2(rect.Position + new Vector2(10, 14), new Vector2(22, 22)), new Color(color, used ? 0.2f : 0.85f));
+            DrawChamfer(rect, 8f, fill, border, 1.2f);
+            DrawRect(new Rect2(rect.Position + new Vector2(9, 9), new Vector2(CardW - 18, 2)),
+                new Color(color, used ? 0.18f : 0.85f));
+
+            DrawProfessionGlyph(rect.Position + new Vector2(22, 32), template.Profession,
+                new Color(color, used ? 0.25f : 0.95f), 0.8f);
 
             if (used)
             {
-                DrawString(_font, rect.Position + new Vector2(0, 56), "已部署", HorizontalAlignment.Center, CardW, 13, Palette.TextFaint);
-                DrawString(_font, rect.Position + new Vector2(0, 84), $"{template.Cost}", HorizontalAlignment.Center, CardW, 12, Palette.TextFaint);
+                DrawString(_font, rect.Position + new Vector2(0, 58), "已部署", HorizontalAlignment.Center, CardW, 12, Palette.TextFaint);
+                DrawString(_font, rect.Position + new Vector2(0, 84), $"{template.Cost}", HorizontalAlignment.Center, CardW, 11, Palette.TextFaint);
             }
             else
             {
-                DrawString(_font, rect.Position + new Vector2(10, 50), template.Name, HorizontalAlignment.Left, CardW - 14, 15, Palette.Text);
-                DrawString(_font, rect.Position + new Vector2(10, 68), Palette.ProfessionLabel(template.Profession),
-                    HorizontalAlignment.Left, CardW - 14, 11, Palette.TextDim);
-                DrawString(_font, rect.Position + new Vector2(10, 86), $"{template.Cost}", HorizontalAlignment.Left,
-                    CardW - 14, 14, affordable ? Palette.Gold : Palette.Danger);
+                DrawString(_font, rect.Position + new Vector2(9, 62), template.Name, HorizontalAlignment.Left, CardW - 14, 14, Palette.Text);
+                DrawString(_font, rect.Position + new Vector2(9, 76), Palette.ProfessionLabel(template.Profession),
+                    HorizontalAlignment.Left, CardW - 14, 9, Palette.TextDim);
+                DrawString(_font, rect.Position + new Vector2(CardW - 28, 88), $"{template.Cost}",
+                    HorizontalAlignment.Left, -1, 15, affordable ? Palette.Heal : Palette.Danger);
             }
         }
     }
@@ -751,8 +970,7 @@ public partial class BattleView : Node2D
     {
         if (_selected == null || _selected.IsDead || !_selected.IsDeployed) return;
 
-        DrawRect(SelectionPanel, Palette.Panel);
-        DrawRect(SelectionPanel, Palette.AccentDim, false, 1.5f);
+        DrawChamfer(SelectionPanel, 12f, Colors.White, new Color(Palette.Accent, 0.55f), 1.2f);
 
         var origin = SelectionPanel.Position;
         DrawString(_font, origin + new Vector2(14, 26), _selected.Name, HorizontalAlignment.Left, -1, 18, Palette.Text);
@@ -761,16 +979,17 @@ public partial class BattleView : Node2D
         if (_selected.Skill != null)
         {
             var skill = _selected.Skill;
-            DrawString(_font, origin + new Vector2(14, 72), skill.Name, HorizontalAlignment.Left, -1, 14, Palette.Accent);
+            DrawString(_font, origin + new Vector2(14, 70), skill.Name, HorizontalAlignment.Left, -1, 14, Palette.Accent);
+            DrawString(_font, origin + new Vector2(14, 86), skill.Description, HorizontalAlignment.Left, 242, 9, Palette.TextDim);
 
-            var bar = new Rect2(origin + new Vector2(14, 82), new Vector2(242, 8));
-            DrawRect(bar, new Color(0, 0, 0, 0.5f));
+            var bar = new Rect2(origin + new Vector2(14, 94), new Vector2(242, 8));
+            DrawRect(bar, new Color(0.15f, 0.2f, 0.26f, 0.2f));
             DrawRect(new Rect2(bar.Position, new Vector2(242 * skill.Progress, 8)),
                 skill.Ready ? Palette.Accent : Palette.AccentDim);
 
-            DrawString(_font, origin + new Vector2(14, 108),
+            DrawString(_font, origin + new Vector2(14, 114),
                 skill.Ready ? "技能就绪" : $"充能 {(int)(skill.Progress * 100)}%",
-                HorizontalAlignment.Left, -1, 11, skill.Ready ? Palette.Accent : Palette.TextDim);
+                HorizontalAlignment.Left, -1, 10, skill.Ready ? Palette.Accent : Palette.TextDim);
 
             if (skill.Ready)
                 DrawButton(SkillButtonRect(), "释放技能 [Q]", Palette.Accent);
@@ -784,7 +1003,8 @@ public partial class BattleView : Node2D
         if (_toastTimer <= 0f || string.IsNullOrEmpty(_toastText)) return;
 
         float alpha = Mathf.Min(1f, _toastTimer * 2f);
-        DrawRect(new Rect2(420, 552, 440, 28), new Color(0.04f, 0.05f, 0.07f, 0.85f * alpha));
+        DrawRect(new Rect2(420, 552, 440, 28), new Color(1f, 1f, 1f, 0.92f * alpha));
+        DrawRect(new Rect2(420, 552, 440, 28), new Color(Palette.Accent, 0.4f * alpha), false, 1f);
         DrawString(_font, new Vector2(420, 571), _toastText, HorizontalAlignment.Center, 440, 13, new Color(Palette.Text, alpha));
     }
 
@@ -831,7 +1051,7 @@ public partial class BattleView : Node2D
     private void DrawBar(Vector2 pos, float width, float height, float ratio, Color color)
     {
         ratio = Mathf.Clamp(ratio, 0f, 1f);
-        DrawRect(new Rect2(pos, new Vector2(width, height)), new Color(0f, 0f, 0f, 0.7f));
+        DrawRect(new Rect2(pos, new Vector2(width, height)), new Color(0.15f, 0.2f, 0.26f, 0.25f));
         DrawRect(new Rect2(pos, new Vector2(width * ratio, height)), color);
     }
 
@@ -856,8 +1076,8 @@ public partial class BattleView : Node2D
 
     private void DrawButton(Rect2 rect, string label, Color color)
     {
-        DrawRect(rect, new Color(color, 0.14f));
-        DrawRect(rect, color, false, 1.5f);
+        DrawChamfer(rect, 6f, new Color(color, 0.12f), new Color(color, 0.75f), 1.2f);
+        DrawRect(new Rect2(rect.Position + new Vector2(8, 6), new Vector2(rect.Size.X - 16, 1)), new Color(color, 0.45f));
         DrawString(_font, rect.Position + new Vector2(0, 20), label, HorizontalAlignment.Center, rect.Size.X, 12, color);
     }
 
@@ -920,7 +1140,16 @@ public partial class BattleView : Node2D
         {
             _shotDeployed = true;
             _sim.Time = 8f;
-            DeployGenericSquad(6);
+            DeployGenericSquad(10);
+            _sim.Cost = 9f;
+
+            // For the screenshot: a vanguard's skill is ready and its panel is open.
+            // Cost 15 leaves some cards affordable (green) and some not (red).
+            foreach (var op in _sim.Operators)
+                if (op.Skill != null && op.Profession == Profession.Vanguard)
+                    op.Skill.Charge = op.Skill.ChargeTime;
+
+            _selected = _sim.Operators.FirstOrDefault(o => o.Profession == Profession.Vanguard);
         }
 
         if (_shotClock > 4.5f && !_shotSaved)
@@ -943,6 +1172,7 @@ public partial class BattleView : Node2D
     /// <summary>Headless regression: build a generic line-up from the map, fast-forward, print the outcome.</summary>
     private void RunAutoTest()
     {
+        GD.Print($"[auto] squad={string.Join(",", _sim.Squad.Select(s => $"{s.Name}:{s.SkillId}"))}");
         DeployGenericSquad();
 
         int steps = 0;

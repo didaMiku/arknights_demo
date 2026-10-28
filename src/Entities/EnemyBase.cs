@@ -39,6 +39,9 @@ public class EnemyBase : IDamageable
     /// <summary>White flash timer for hit feedback.</summary>
     public float HitFlash;
 
+    /// <summary>Counts down after the enemy strikes a blocker; drives the lunge pose.</summary>
+    public float AttackAnim;
+
     public List<StatusEffect> Effects { get; } = new();
 
     public Vector2I Cell => new(Mathf.RoundToInt(Position.X), Mathf.RoundToInt(Position.Y));
@@ -76,6 +79,7 @@ public class EnemyBase : IDamageable
     public void Tick(float dt, BattleSimulation sim)
     {
         HitFlash = Mathf.Max(0f, HitFlash - dt);
+        AttackAnim = Mathf.Max(0f, AttackAnim - dt);
 
         if (IsDead || ReachedGoal) return;
 
@@ -97,6 +101,7 @@ public class EnemyBase : IDamageable
                 if (AttackTimer <= 0f)
                 {
                     AttackTimer = Template.AttackInterval;
+                    AttackAnim = 0.28f;
                     sim.DamageOperator(Blocker, Template.Attack, DamageType.Physical, Name);
                 }
                 return;

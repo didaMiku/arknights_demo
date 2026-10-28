@@ -49,6 +49,9 @@ public abstract class OperatorBase : IOperator, IDamageable
     /// <summary>Counts down after deployment so the view can play a pop-in scale animation.</summary>
     public float DeployTimer;
 
+    /// <summary>Counts down after an attack; the view uses it to drive the swing pose.</summary>
+    public float AttackAnim;
+
     public float DeployAnim => 1f - Mathf.Clamp(DeployTimer / 0.45f, 0f, 1f);
 
     private readonly OperatorStats _base = new();
@@ -146,6 +149,7 @@ public abstract class OperatorBase : IOperator, IDamageable
     {
         HitFlash = Mathf.Max(0f, HitFlash - dt);
         DeployTimer = Mathf.Max(0f, DeployTimer - dt);
+        AttackAnim = Mathf.Max(0f, AttackAnim - dt);
 
         if (IsDead) return;
 
@@ -160,6 +164,7 @@ public abstract class OperatorBase : IOperator, IDamageable
 
         PerformAttack(target.Value, sim);
         AttackTimer = Mathf.Max(0.15f, Stats.AttackInterval);
+        AttackAnim = 0.3f;
     }
 
     private void UpdateTimers(float dt)
